@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 import shutil
 import tempfile
 
@@ -7,13 +8,20 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import yt_dlp
 
+load_dotenv()
+
 app = FastAPI(title="Self-hosted video downloader")
 
 # Set this to a long random string as an environment variable on the server.
 # n8n must send the same value in the x-api-key header on every request,
 # or the request is rejected. Without this, anyone who finds your server's
 # address could use it to download videos through your server/IP.
-API_KEY = os.environ.get("DOWNLOADER_API_KEY", "test")
+API_KEY = os.environ.get("DOWNLOADER_API_KEY", "")
+
+# Optional: route yt-dlp's requests through a proxy (e.g. a residential
+# proxy), in case the android-client fix alone isn't enough for a given
+# video. Leave unset to make requests directly, same as before.
+PROXY_URL = os.environ.get("PROXY_URL", "").strip()
 
 
 class DownloadRequest(BaseModel):
@@ -45,6 +53,9 @@ def download(payload: DownloadRequest, x_api_key: str = Header(default=None)):
         "restrictfilenames": True,
         "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
     }
+
+    if PROXY_URL:
+        ydl_opts["proxy"] = PROXY_URL
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
