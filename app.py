@@ -43,6 +43,7 @@ def download(payload: DownloadRequest, x_api_key: str = Header(default=None)):
         "quiet": True,
         "no_warnings": True,
         "restrictfilenames": True,
+        "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
     }
 
     try:
